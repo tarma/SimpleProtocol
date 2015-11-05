@@ -7,9 +7,4 @@ enum {
   AM_DEST_ADDR = 2
 };
 
-typedef nx_struct Node1Msg {
-  nx_uint16_t nodeid;
-  nx_uint16_t counter;
-} Node1Msg;
-
 #endif

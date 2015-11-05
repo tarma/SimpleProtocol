@@ -1,5 +1,6 @@
 #include <Timer.h>
 #include "Node1.h"
+#include "../NetworkMsg.h"
 
 module Node1C {
   uses interface Boot;
@@ -37,8 +38,8 @@ implementation {
   event void Timer0.fired() {
     counter++;
     if (!busy) {
-      Node1Msg* node1pkt = 
-	(Node1Msg*)(call Packet.getPayload(&pkt, sizeof(Node1Msg)));
+      NetworkMsg* node1pkt = 
+	(NetworkMsg*)(call Packet.getPayload(&pkt, sizeof(NetworkMsg)));
       if (node1pkt == NULL) {
 	     return;
       }
@@ -46,7 +47,7 @@ implementation {
       node1pkt->counter = counter;
       call PacketAcknowledgements.requestAck(&pkt);
       if (call AMSend.send(AM_DEST_ADDR, 
-          &pkt, sizeof(Node1Msg)) == SUCCESS) {
+          &pkt, sizeof(NetworkMsg)) == SUCCESS) {
         busy = TRUE;
       }
     }
@@ -56,6 +57,7 @@ implementation {
     if (&pkt == msg && call PacketAcknowledgements.wasAcked(msg)) {
       busy = FALSE;
       call Leds.led1Toggle();
+    } else {
     }
   }
 }
