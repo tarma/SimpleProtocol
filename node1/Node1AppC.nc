@@ -9,7 +9,7 @@ implementation {
   components Node1C as App;
   components new TimerMilliC() as Timer0;
   components ActiveMessageC;
-  components new AMSenderC(AM_NODE1);
+  components new AMSenderC(AM_NETWORKMSG);
 
   App.Boot -> MainC;
   App.Leds -> LedsC;

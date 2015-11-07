@@ -1,3 +1,4 @@
-node1/make/
-node2/make/
+node1/build/
+node2/build/
+*.class
 

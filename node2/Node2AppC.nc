@@ -7,8 +7,8 @@ implementation {
   components LedsC;
   components Node2C as App;
   components ActiveMessageC;
-  components new AMSenderC(AM_NODE2_SEND_CHANNEL);
-  components new AMReceiverC(AM_NODE2_RECEIVE_CHANNEL);
+  components new AMSenderC(AM_NETWORKMSG);
+  components new AMReceiverC(AM_NETWORKMSG);
 
   App.Boot -> MainC;
   App.Leds -> LedsC;
