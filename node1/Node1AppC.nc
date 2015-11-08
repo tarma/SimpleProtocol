@@ -14,8 +14,6 @@ implementation {
   App.Boot -> MainC;
   App.Leds -> LedsC;
   App.Timer0 -> Timer0;
-  App.Packet -> AMSenderC;
-  App.AMPacket -> AMSenderC;
   App.AMControl -> ActiveMessageC;
   App.AMSend -> AMSenderC;
   App.PacketAcknowledgements -> AMSenderC;

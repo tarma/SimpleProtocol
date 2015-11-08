@@ -1,19 +1,20 @@
-#include "Node2.h"
+#include "Node3.h"
 
-configuration Node2AppC {
+configuration Node3AppC {
 }
 implementation {
   components MainC;
   components LedsC;
-  components Node2C as App;
+  components Node3C as App;
   components ActiveMessageC;
-  components new AMSenderC(AM_NETWORKMSG);
+  components SerialActiveMessageC;
+  components new SerialAMSenderC(AM_NETWORKMSG);
   components new AMReceiverC(AM_NETWORKMSG);
 
   App.Boot -> MainC;
   App.Leds -> LedsC;
   App.AMControl -> ActiveMessageC;
-  App.AMSend -> AMSenderC;
+  App.SerialControl -> SerialActiveMessageC;
+  App.AMSend -> SerialAMSenderC;
   App.Receive -> AMReceiverC;
-  App.PacketAcknowledgements -> AMSenderC;
 }

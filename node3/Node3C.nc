@@ -1,12 +1,13 @@
-#include "Node2.h"
+#include "Node3.h"
 #include "../NetworkMsg.h"
 
-module Node2C {
+module Node3C {
   uses interface Boot;
   uses interface Leds;
   uses interface AMSend;
   uses interface Receive;
   uses interface SplitControl as AMControl;
+  uses interface SplitControl as SerialControl;
   uses interface PacketAcknowledgements;
 }
 implementation {
@@ -30,17 +31,27 @@ implementation {
     
     call Leds.led0On();
     call AMControl.start();
+    call SerialControl.start();
   }
 
   event void AMControl.startDone(error_t err) {
     if (err != SUCCESS) {
       call AMControl.start();
-    } else {
-      queueFull = FALSE;
     }
   }
 
   event void AMControl.stopDone(error_t err) {
+  }
+  
+  event void SerialControl.startDone(error_t err) {
+    if (err != SUCCESS) {
+      call SerialControl.start();
+    } else {
+      queueFull = FALSE;
+    }
+  }
+  
+  event void SerialControl.stopDone(error_t err) {
   }
   
   task void sendTask() {
@@ -54,8 +65,7 @@ implementation {
     }
     
     msg = queue[queueOut];
-    call PacketAcknowledgements.requestAck(msg);
-    if (call AMSend.send(AM_DEST_ADDR, msg, sizeof(NetworkMsg)) == SUCCESS) {
+    if (call AMSend.send(AM_BROADCAST_ADDR, msg, sizeof(NetworkMsg)) == SUCCESS) {
       call Leds.led2Toggle();
     } else {
       post sendTask();

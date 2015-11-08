@@ -6,8 +6,6 @@ module Node1C {
   uses interface Boot;
   uses interface Leds;
   uses interface Timer<TMilli> as Timer0;
-  uses interface Packet;
-  uses interface AMPacket;
   uses interface AMSend;
   uses interface SplitControl as AMControl;
   uses interface PacketAcknowledgements;

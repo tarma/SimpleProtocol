@@ -1,0 +1,3 @@
+COMPONENT=Node3AppC
+include $(MAKERULES)
+
