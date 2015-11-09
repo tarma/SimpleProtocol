@@ -1,10 +1,12 @@
 #include "Node2.h"
 #include "../Msg/NetworkMsg.h"
+#include "../Msg/IntermediateMsg.h"
 
 module Node2C {
   uses interface Boot;
   uses interface Leds;
   uses interface AMSend;
+  uses interface Packet;
   uses interface Receive;
   uses interface SplitControl as AMControl;
   uses interface PacketAcknowledgements;
@@ -13,6 +15,8 @@ implementation {
 
   message_t  queueBufs[QUEUE_LEN];
   message_t * ONE_NOK queue[QUEUE_LEN];
+  message_t pkt;
+  uint8_t usage[QUEUE_LEN];
   uint8_t queueIn, queueOut;
   bool queueBusy, queueFull;
 
@@ -45,6 +49,8 @@ implementation {
   
   task void sendTask() {
     message_t *msg;
+    NetworkMsg *initMsg;
+    IntermediateMsg *interMsg; 
     
     atomic {
       if (queueIn == queueOut && !queueFull) {
@@ -52,10 +58,18 @@ implementation {
         return;
       }
     }
-    
     msg = queue[queueOut];
-    call PacketAcknowledgements.requestAck(msg);
-    if (call AMSend.send(AM_DEST_ADDR, msg, sizeof(NetworkMsg)) == SUCCESS) {
+    initMsg = (NetworkMsg*)(call Packet.getPayload(msg, sizeof(NetworkMsg)));
+    interMsg = (IntermediateMsg*)(call Packet.getPayload(&pkt, sizeof(IntermediateMsg)));
+    if (initMsg == NULL || interMsg == NULL) {
+      return;
+    }
+    interMsg->nodeid = initMsg->nodeid;
+    interMsg->counter = initMsg->counter;
+    interMsg->interval = initMsg->interval;
+    interMsg->buffer = usage[queueOut];
+    call PacketAcknowledgements.requestAck(&pkt);
+    if (call AMSend.send(AM_DEST_ADDR, &pkt, sizeof(IntermediateMsg)) == SUCCESS) {
       call Leds.led2Toggle();
     } else {
       post sendTask();
@@ -65,14 +79,12 @@ implementation {
   event void AMSend.sendDone(message_t* msg, error_t err) {
     if (err == SUCCESS) {
       atomic {
-        if (msg == queue[queueOut]) {
-          queueOut = (queueOut + 1) % QUEUE_LEN;
-          queueFull = FALSE;
-        }
-        
-        post sendTask();
+        queueOut = (queueOut + 1) % QUEUE_LEN;
+        queueFull = FALSE;
       }
     }
+    
+    post sendTask();
   }
 
   event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len) {
@@ -83,6 +95,7 @@ implementation {
         if (!queueFull) {
           ret = queue[queueIn];
           queue[queueIn] = msg;
+          usage[queueIn] = (queueIn + QUEUE_LEN - queueOut) % QUEUE_LEN + 1;
           
           queueIn = (queueIn + 1) % QUEUE_LEN;
           

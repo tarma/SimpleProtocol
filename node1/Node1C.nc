@@ -17,8 +17,8 @@ implementation {
   uint16_t counter;
   message_t pkt;
   bool busy = FALSE;
-  uint32_t interval = INIT_INTERVAL;
-  bool way_down = FALSE;
+  uint16_t interval_index = 0;
+  uint16_t firedCounter = FIRED_TIMES;
 
   event void Boot.booted() {
     call Leds.led0On();
@@ -27,7 +27,7 @@ implementation {
 
   event void AMControl.startDone(error_t err) {
     if (err == SUCCESS) {
-      call Timer.startOneShot(interval);
+      call Timer.startOneShot(interval_array[interval_index]);
     }
     else {
       call AMControl.start();
@@ -38,6 +38,7 @@ implementation {
   }
 
   event void Timer.fired() {
+  atomic {
     counter++;
     if (!busy) {
       NetworkMsg* node1pkt = (NetworkMsg*)(call Packet.getPayload(&pkt, sizeof(NetworkMsg)));
@@ -46,25 +47,22 @@ implementation {
       }
       node1pkt->nodeid = TOS_NODE_ID;
       node1pkt->counter = counter;
-      node1pkt->interval = interval;
+      node1pkt->interval = interval_array[interval_index];
       call PacketAcknowledgements.requestAck(&pkt);
-      if (call AMSend.send(AM_DEST_ADDR, 
-          &pkt, sizeof(NetworkMsg)) == SUCCESS) {
+      if (call AMSend.send(AM_DEST_ADDR, &pkt, sizeof(NetworkMsg)) == SUCCESS) {
         busy = TRUE;
       }
     }
-    if (way_down) {
-      interval -= 50;
-      if (interval <= 100) {
-        way_down = FALSE;
-      }
-    } else {
-      interval += 50;
-      if (interval >= 500) {
-        way_down = TRUE;
-      }
+    
+    firedCounter--;
+    if (firedCounter <= 0) {
+      interval_index++;
+      firedCounter = FIRED_TIMES;
     }
-    call Timer.startOneShot(interval);
+    if (interval_index < INTERVAL_LEN) {
+      call Timer.startOneShot(interval_array[interval_index]);
+    }
+    }
   }
 
   event void AMSend.sendDone(message_t* msg, error_t err) {

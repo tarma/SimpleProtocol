@@ -2,7 +2,7 @@
 #define NETWORKMSG_H
 
 enum {
-  AM_NETWORKMSG = 6
+  AM_NETWORKMSG = 66
 };
 
 typedef nx_struct NetworkMsg {

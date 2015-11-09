@@ -10,7 +10,7 @@ implementation {
   components SerialActiveMessageC;
   components LocalTimeMilliC as LocalTime;
   components new SerialAMSenderC(AM_SERIALMSG);
-  components new AMReceiverC(AM_NETWORKMSG);
+  components new AMReceiverC(AM_INTERMEDIATEMSG);
 
   App.Boot -> MainC;
   App.Leds -> LedsC;

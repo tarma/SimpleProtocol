@@ -9,6 +9,7 @@ typedef nx_struct SerialMsg {
   nx_uint16_t nodeid;
   nx_uint16_t counter;
   nx_uint32_t interval;
+  nx_uint8_t buffer;
   nx_uint32_t localtime;
 } SerialMsg;
 

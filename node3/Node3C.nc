@@ -1,6 +1,6 @@
 #include <Timer.h>
 #include "Node3.h"
-#include "../Msg/NetworkMsg.h"
+#include "../Msg/IntermediateMsg.h"
 #include "../Msg/SerialMsg.h"
 
 module Node3C {
@@ -19,6 +19,7 @@ implementation {
 
   message_t  queueBufs[QUEUE_LEN];
   message_t * ONE_NOK queue[QUEUE_LEN];
+  message_t serialMsg;
   uint32_t receiveTime[QUEUE_LEN];
   uint8_t queueIn, queueOut;
   bool queueBusy, queueFull;
@@ -61,9 +62,9 @@ implementation {
   }
   
   task void sendTask() {
-    message_t *radioMsg, serialMsg;
+    message_t *radioMsg;
     SerialMsg *serialPkt;
-    NetworkMsg *radioPkt;
+    IntermediateMsg *radioPkt;
     
     atomic {
       if (queueIn == queueOut && !queueFull) {
@@ -74,14 +75,14 @@ implementation {
     
     radioMsg = queue[queueOut];
     serialPkt = (SerialMsg*) (call SerialPacket.getPayload(&serialMsg, sizeof(SerialMsg)));
-    radioPkt = (NetworkMsg*) (call RadioPacket.getPayload(radioMsg, sizeof(NetworkMsg)));
+    radioPkt = (IntermediateMsg*) (call RadioPacket.getPayload(radioMsg, sizeof(IntermediateMsg)));
     if (serialPkt == NULL || radioPkt == NULL) {
-      post sendTask();
       return;
     }
     serialPkt->nodeid = radioPkt->nodeid;
     serialPkt->counter = radioPkt->counter;
     serialPkt->interval = radioPkt->interval;
+    serialPkt->buffer = radioPkt->buffer;
     serialPkt->localtime = receiveTime[queueOut];
     if (call AMSend.send(AM_BROADCAST_ADDR, &serialMsg, sizeof(SerialMsg)) == SUCCESS) {
       call Leds.led2Toggle();
@@ -93,20 +94,17 @@ implementation {
   event void AMSend.sendDone(message_t* msg, error_t err) {
     if (err == SUCCESS) {
       atomic {
-        if (msg == queue[queueOut]) {
-          queueOut = (queueOut + 1) % QUEUE_LEN;
-          queueFull = FALSE;
-        }
-        
-        post sendTask();
+        queueOut = (queueOut + 1) % QUEUE_LEN;
+        queueFull = FALSE;
       }
     }
+    post sendTask();
   }
 
   event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len) {
     message_t *ret = msg;
   
-    if (len == sizeof(NetworkMsg)) {
+    if (len == sizeof(IntermediateMsg)) {
       atomic {
         if (!queueFull) {
           ret = queue[queueIn];
