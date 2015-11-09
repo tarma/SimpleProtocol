@@ -2,7 +2,7 @@
 #define NODE1_H
 
 enum {
-  TIMER_PERIOD_MILLI = 250,
+  INIT_INTERVAL = 250,
   AM_DEST_ADDR = 2
 };
 

@@ -8,12 +8,16 @@ implementation {
   components Node3C as App;
   components ActiveMessageC;
   components SerialActiveMessageC;
-  components new SerialAMSenderC(AM_NETWORKMSG);
+  components LocalTimeMilliC as LocalTime;
+  components new SerialAMSenderC(AM_SERIALMSG);
   components new AMReceiverC(AM_NETWORKMSG);
 
   App.Boot -> MainC;
   App.Leds -> LedsC;
+  App.LocalTime -> LocalTime;
   App.AMControl -> ActiveMessageC;
+  App.SerialPacket -> SerialAMSenderC;
+  App.RadioPacket -> AMReceiverC;
   App.SerialControl -> SerialActiveMessageC;
   App.AMSend -> SerialAMSenderC;
   App.Receive -> AMReceiverC;

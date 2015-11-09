@@ -1,5 +1,5 @@
 #include "Node2.h"
-#include "../NetworkMsg.h"
+#include "../Msg/NetworkMsg.h"
 
 module Node2C {
   uses interface Boot;

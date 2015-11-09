@@ -1,5 +1,7 @@
+#include <Timer.h>
 #include "Node3.h"
-#include "../NetworkMsg.h"
+#include "../Msg/NetworkMsg.h"
+#include "../Msg/SerialMsg.h"
 
 module Node3C {
   uses interface Boot;
@@ -8,12 +10,16 @@ module Node3C {
   uses interface Receive;
   uses interface SplitControl as AMControl;
   uses interface SplitControl as SerialControl;
+  uses interface Packet as RadioPacket;
+  uses interface Packet as SerialPacket;
   uses interface PacketAcknowledgements;
+  uses interface LocalTime<TMilli> as LocalTime;
 }
 implementation {
 
   message_t  queueBufs[QUEUE_LEN];
   message_t * ONE_NOK queue[QUEUE_LEN];
+  uint32_t receiveTime[QUEUE_LEN];
   uint8_t queueIn, queueOut;
   bool queueBusy, queueFull;
 
@@ -55,7 +61,9 @@ implementation {
   }
   
   task void sendTask() {
-    message_t *msg;
+    message_t *radioMsg, serialMsg;
+    SerialMsg *serialPkt;
+    NetworkMsg *radioPkt;
     
     atomic {
       if (queueIn == queueOut && !queueFull) {
@@ -64,8 +72,18 @@ implementation {
       }
     }
     
-    msg = queue[queueOut];
-    if (call AMSend.send(AM_BROADCAST_ADDR, msg, sizeof(NetworkMsg)) == SUCCESS) {
+    radioMsg = queue[queueOut];
+    serialPkt = (SerialMsg*) (call SerialPacket.getPayload(&serialMsg, sizeof(SerialMsg)));
+    radioPkt = (NetworkMsg*) (call RadioPacket.getPayload(radioMsg, sizeof(NetworkMsg)));
+    if (serialPkt == NULL || radioPkt == NULL) {
+      post sendTask();
+      return;
+    }
+    serialPkt->nodeid = radioPkt->nodeid;
+    serialPkt->counter = radioPkt->counter;
+    serialPkt->interval = radioPkt->interval;
+    serialPkt->localtime = receiveTime[queueOut];
+    if (call AMSend.send(AM_BROADCAST_ADDR, &serialMsg, sizeof(SerialMsg)) == SUCCESS) {
       call Leds.led2Toggle();
     } else {
       post sendTask();
@@ -93,6 +111,7 @@ implementation {
         if (!queueFull) {
           ret = queue[queueIn];
           queue[queueIn] = msg;
+          receiveTime[queueIn] = call LocalTime.get();
           
           queueIn = (queueIn + 1) % QUEUE_LEN;
           
