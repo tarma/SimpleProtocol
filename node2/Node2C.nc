@@ -17,6 +17,7 @@ implementation {
   message_t * ONE_NOK queue[QUEUE_LEN];
   message_t pkt;
   uint8_t usage[QUEUE_LEN];
+  uint8_t times[QUEUE_LEN];
   uint8_t queueIn, queueOut;
   bool queueBusy, queueFull;
 
@@ -77,10 +78,12 @@ implementation {
   }
 
   event void AMSend.sendDone(message_t* msg, error_t err) {
-    if (err == SUCCESS) {
-      atomic {
+    atomic {
+      if ((err == SUCCESS && call PacketAcknowledgements.wasAcked(msg)) || times[queueOut] <= 0) {
         queueOut = (queueOut + 1) % QUEUE_LEN;
         queueFull = FALSE;
+      } else {
+        times[queueOut]--;
       }
     }
     
@@ -96,6 +99,7 @@ implementation {
           ret = queue[queueIn];
           queue[queueIn] = msg;
           usage[queueIn] = (queueIn + QUEUE_LEN - queueOut) % QUEUE_LEN + 1;
+          times[queueIn] = MAX_TIMES;
           
           queueIn = (queueIn + 1) % QUEUE_LEN;
           
